@@ -5,9 +5,9 @@ Tags: email, marketing, embed form, convertkit, capture
 Requires at least: 5.0
 Tested up to: 6.8
 Requires PHP: 5.6.20
-Stable tag: 1.9.5
-License: GPLv2 or later
-License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Stable tag: 1.9.6
+License: GPLv3 or later
+License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
 Integrates WooCommerce with Kit allowing customers to be automatically sent to your Kit account.
 
@@ -45,6 +45,9 @@ No. You must first have an account on kit.com, but you do not have to use a paid
 2. Checkout page with added checkbox
 
 == Changelog ==
+
+### 1.9.6 2025-04-24
+* Fix: Checkout: PHP Fatal error when using WooCommerce 8.4.0 or older opt-in checkout block
 
 ### 1.9.5 2025-04-15
 * Added: Custom Fields: Address Format: Option to format Billing and Shipping Address stored in Kit Custom Fields
