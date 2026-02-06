@@ -183,7 +183,7 @@ class WP_CKWC {
 		if ( ! defined( 'WP_CLI' ) ) {
 			return;
 		}
-		if ( ! WP_CLI ) {
+		if ( ! WP_CLI ) { // @phpstan-ignore-line
 			return;
 		}
 		if ( ! class_exists( 'WP_CLI' ) ) {
@@ -248,6 +248,8 @@ class WP_CKWC {
 	 */
 	private function initialize_global() {
 
+		$this->classes['abandoned_cart']   = new CKWC_Abandoned_Cart();
+		$this->classes['admin_notices']    = new CKWC_Admin_Notices();
 		$this->classes['checkout']         = new CKWC_Checkout();
 		$this->classes['order']            = new CKWC_Order();
 		$this->classes['review_request']   = new ConvertKit_Review_Request( 'Kit for WooCommerce', 'convertkit-for-woocommerce', CKWC_PLUGIN_PATH );

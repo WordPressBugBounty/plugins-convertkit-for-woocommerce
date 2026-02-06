@@ -3,9 +3,9 @@ Contributors: nathanbarry, growdev, travisnorthcutt, convertkit
 Donate link: https://kit.com
 Tags: email, marketing, embed form, convertkit, capture
 Requires at least: 5.0
-Tested up to: 6.8
+Tested up to: 6.9
 Requires PHP: 7.1
-Stable tag: 2.0.1
+Stable tag: 2.0.5
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -45,6 +45,19 @@ No. You must first have an account on kit.com, but you do not have to use a paid
 2. Checkout page with added checkbox
 
 == Changelog ==
+
+### 2.0.5 2026-01-19
+* Added: Abandoned Cart Functionality
+
+### 2.0.4 2025-12-18
+* Updated: Use WordPress Libraries 2.1.3
+
+### 2.0.3 2025-12-03
+* Fix: Settings: Improve logic to automatically delete invalid Access Tokens
+
+### 2.0.2 2025-12-03
+* Fix: Settings: Automatically delete invalid Access Tokens
+* Updated: Use WordPress Libraries 2.1.2
 
 ### 2.0.1 2025-09-29
 * Added: Refresh resources button: show loading indicator until refresh is complete

@@ -86,10 +86,6 @@ class CKWC_Integration extends WC_Integration {
 		$this->init_form_fields();
 		$this->init_settings();
 
-		// Update Access Token when refreshed by the API class.
-		add_action( 'convertkit_api_get_access_token', array( $this, 'update_credentials' ), 10, 2 );
-		add_action( 'convertkit_api_refresh_token', array( $this, 'update_credentials' ), 10, 2 );
-
 		// Load Admin screens, save settings.
 		if ( is_admin() ) {
 			// Perform OAuth and export configuration options, if required.
@@ -117,16 +113,12 @@ class CKWC_Integration extends WC_Integration {
 	 *
 	 * @since   1.8.0
 	 *
-	 * @param   array  $result      New Access Token, Refresh Token and Expiry.
-	 * @param   string $client_id   OAuth Client ID used for the Access and Refresh Tokens.
+	 * @param   array $result      New Access Token, Refresh Token and Expiry.
 	 */
-	public function update_credentials( $result, $client_id ) {
+	public function update_credentials( $result ) {
 
-		// Don't save these credentials if they're not for this Client ID.
-		// They're for another Kit Plugin that uses OAuth.
-		if ( $client_id !== CKWC_OAUTH_CLIENT_ID ) {
-			return;
-		}
+		// Remove any existing persistent notice.
+		WP_CKWC()->get_class( 'admin_notices' )->delete( 'authorization_failed' );
 
 		// Update settings.
 		$this->update_option( 'access_token', $result['access_token'] );
@@ -138,6 +130,23 @@ class CKWC_Integration extends WC_Integration {
 
 		// Schedule a WordPress Cron event to refresh the token on expiry.
 		wp_schedule_single_event( ( time() + $result['expires_in'] ), 'ckwc_refresh_token' );
+
+	}
+
+	/**
+	 * Deletes any existing access token, refresh token and its expiry from the Plugin settings,
+	 * and clears any existing scheduled WordPress Cron event to refresh the token on expiry.
+	 *
+	 * @since   2.0.2
+	 */
+	public function delete_credentials() {
+
+		$this->update_option( 'access_token', '' );
+		$this->update_option( 'refresh_token', '' );
+		$this->update_option( 'token_expires', '' );
+
+		// Clear any existing scheduled WordPress Cron event.
+		wp_clear_scheduled_hook( 'ckwc_refresh_token' );
 
 	}
 
@@ -165,10 +174,8 @@ class CKWC_Integration extends WC_Integration {
 		// Delete resources.
 		$this->resources_delete();
 
-		// Remove Access Token from settings.
-		$this->update_option( 'access_token', '' );
-		$this->update_option( 'refresh_token', '' );
-		$this->update_option( 'token_expires', '' );
+		// Remove tokens from settings.
+		$this->delete_credentials();
 
 		// Redirect to General screen, which will now show the Plugin's settings, because the Plugin
 		// is now authenticated.
@@ -513,16 +520,19 @@ class CKWC_Integration extends WC_Integration {
 				),
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe',
+				'class'       => 'enabled',
 			),
 			'subscription'                  => array(
-				'title'       => __( 'Subscription', 'woocommerce-convertkit' ),
-				'type'        => 'subscription',
-				'default'     => '',
-				'description' => __( 'The Kit form, tag or sequence to subscribe customers to.', 'woocommerce-convertkit' ),
+				'title'             => __( 'Subscription', 'woocommerce-convertkit' ),
+				'type'              => 'subscription',
+				'default'           => '',
+				'description'       => __( 'The Kit form, tag or sequence to subscribe customers to.', 'woocommerce-convertkit' ),
+				'include_forms'     => true,
+				'include_tags'      => true,
+				'include_sequences' => true,
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe',
+				'class'             => 'enabled',
 			),
 			'name_format'                   => array(
 				'title'       => __( 'Name Format', 'woocommerce-convertkit' ),
@@ -537,7 +547,7 @@ class CKWC_Integration extends WC_Integration {
 				),
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe',
+				'class'       => 'enabled',
 			),
 
 			// Custom Field Mappings.
@@ -548,7 +558,7 @@ class CKWC_Integration extends WC_Integration {
 				'description' => __( 'The Kit custom field to store the order\'s last name.', 'woocommerce-convertkit' ),
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe',
+				'class'       => 'enabled',
 			),
 			'custom_field_phone'            => array(
 				'title'       => __( 'Send Phone Number', 'woocommerce-convertkit' ),
@@ -557,7 +567,7 @@ class CKWC_Integration extends WC_Integration {
 				'description' => __( 'The Kit custom field to store the order\'s phone number.', 'woocommerce-convertkit' ),
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe',
+				'class'       => 'enabled',
 			),
 			'custom_field_billing_address'  => array(
 				'title'       => __( 'Send Billing Address', 'woocommerce-convertkit' ),
@@ -566,7 +576,7 @@ class CKWC_Integration extends WC_Integration {
 				'description' => __( 'The Kit custom field to store the order\'s billing address.', 'woocommerce-convertkit' ),
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe',
+				'class'       => 'enabled',
 			),
 			'custom_field_shipping_address' => array(
 				'title'       => __( 'Send Shipping Address', 'woocommerce-convertkit' ),
@@ -575,7 +585,7 @@ class CKWC_Integration extends WC_Integration {
 				'description' => __( 'The Kit custom field to store the order\'s shipping address.', 'woocommerce-convertkit' ),
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe',
+				'class'       => 'enabled',
 			),
 			'custom_field_address_format'   => array(
 				'title'       => __( 'Address Format', 'woocommerce-convertkit' ),
@@ -612,7 +622,7 @@ class CKWC_Integration extends WC_Integration {
 				'description' => __( 'The Kit custom field to store the order\'s payment method.', 'woocommerce-convertkit' ),
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe',
+				'class'       => 'enabled',
 			),
 			'custom_field_customer_note'    => array(
 				'title'       => __( 'Send Customer Note', 'woocommerce-convertkit' ),
@@ -621,7 +631,7 @@ class CKWC_Integration extends WC_Integration {
 				'description' => __( 'The Kit custom field to store the order\'s customer note.', 'woocommerce-convertkit' ),
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe',
+				'class'       => 'enabled',
 			),
 
 			// Subscribe: Display Opt In Checkbox Settings.
@@ -638,7 +648,7 @@ class CKWC_Integration extends WC_Integration {
 				'desc_tip'    => false,
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe',
+				'class'       => 'enabled',
 			),
 			'opt_in_label'                  => array(
 				'title'       => __( 'Opt-In Checkbox: Label', 'woocommerce-convertkit' ),
@@ -648,7 +658,7 @@ class CKWC_Integration extends WC_Integration {
 				'desc_tip'    => false,
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe display_opt_in',
+				'class'       => 'enabled display_opt_in',
 			),
 			'opt_in_status'                 => array(
 				'title'       => __( 'Opt-In Checkbox: Default Status', 'woocommerce-convertkit' ),
@@ -662,7 +672,7 @@ class CKWC_Integration extends WC_Integration {
 				),
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe display_opt_in',
+				'class'       => 'enabled display_opt_in',
 			),
 			'opt_in_location'               => array(
 				'title'       => __( 'Opt-In Checkbox: Display Location', 'woocommerce-convertkit' ),
@@ -676,7 +686,7 @@ class CKWC_Integration extends WC_Integration {
 				),
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe display_opt_in',
+				'class'       => 'enabled display_opt_in',
 			),
 
 			// Purchase Data.
@@ -693,7 +703,7 @@ class CKWC_Integration extends WC_Integration {
 				'desc_tip'    => false,
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe',
+				'class'       => 'enabled',
 			),
 			'send_purchases_event'          => array(
 				'title'       => __( 'Purchase Data Event', 'woocommerce-convertkit' ),
@@ -724,7 +734,7 @@ class CKWC_Integration extends WC_Integration {
 				),
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'       => 'enabled subscribe send_purchases',
+				'class'       => 'enabled send_purchases',
 			),
 			'sync_past_orders'              => array(
 				'title'    => __( 'Sync Past Orders', 'woocommerce-convertkit' ),
@@ -739,7 +749,52 @@ class CKWC_Integration extends WC_Integration {
 				),
 
 				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
-				'class'    => 'enabled subscribe',
+				'class'    => 'enabled send_purchases',
+			),
+
+			// Abandoned Cart.
+			'abandoned_cart'                => array(
+				'title'       => __( 'Abandoned Cart', 'woocommerce-convertkit' ),
+				'label'       => __( 'Send abandoned cart data to Kit.', 'woocommerce-convertkit' ),
+				'type'        => 'checkbox',
+				'default'     => 'no',
+				'description' => __(
+					'If enabled, the visitor will be subscribed to a tag in Kit, if they leave items in their cart without completing the checkout process after the below number of minutes. The tag is removed when they complete checkout.',
+					'woocommerce-convertkit'
+				),
+				'desc_tip'    => false,
+
+				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
+				'class'       => 'enabled',
+			),
+			'abandoned_cart_threshold'      => array(
+				'title'             => __( 'Abandoned Cart: Threshold', 'woocommerce-convertkit' ),
+				'type'              => 'number',
+				'default'           => 15,
+				'description'       => __( 'The number of minutes to wait before considering a cart abandoned.', 'woocommerce-convertkit' ),
+				'desc_tip'          => false,
+
+				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
+				'class'             => 'enabled abandoned_cart',
+
+				// Custom attributes for the number input.
+				'custom_attributes' => array(
+					'min'  => 1,
+					'max'  => 99999,
+					'step' => 1,
+				),
+			),
+			'abandoned_cart_subscription'   => array(
+				'title'             => __( 'Abandoned Cart: Tag', 'woocommerce-convertkit' ),
+				'type'              => 'subscription',
+				'default'           => '',
+				'description'       => __( 'The Kit tag to subscribe visitors to when they abandon their cart. This can be used in a Sequence or Automation to send abandoned cart emails to the subscriber. This tag is removed when the customer completes the checkout process.', 'woocommerce-convertkit' ),
+				'include_forms'     => false,
+				'include_tags'      => true,
+				'include_sequences' => false,
+
+				// The setting name that needs to be checked/enabled for this setting to display. Used by JS to toggle visibility.
+				'class'             => 'enabled abandoned_cart',
 			),
 
 			// Debugging.
@@ -884,6 +939,9 @@ class CKWC_Integration extends WC_Integration {
 			'description'       => '',
 			'custom_attributes' => array(),
 			'options'           => array(),
+			'include_forms'     => false,
+			'include_tags'      => false,
+			'include_sequences' => false,
 		);
 
 		$data = wp_parse_args( $data, $defaults );
@@ -905,14 +963,22 @@ class CKWC_Integration extends WC_Integration {
 
 		// Get current subscription setting and other settings to render the subscription dropdown field.
 		$subscription = array(
-			'id'        => 'woocommerce_ckwc_subscription',
-			'class'     => 'select ckwc-select2 ' . $data['class'],
-			'name'      => $field,
-			'value'     => $this->get_option( $key ),
-			'forms'     => $this->forms,
-			'tags'      => $this->tags,
-			'sequences' => $this->sequences,
+			'id'    => $field,
+			'class' => 'select ckwc-select2 ' . $data['class'],
+			'name'  => $field,
+			'value' => $this->get_option( $key ),
 		);
+
+		// Include Forms, Tags and Sequences in the subscription dropdown field.
+		if ( $data['include_forms'] ) {
+			$subscription['forms'] = $this->forms;
+		}
+		if ( $data['include_tags'] ) {
+			$subscription['tags'] = $this->tags;
+		}
+		if ( $data['include_sequences'] ) {
+			$subscription['sequences'] = $this->sequences;
+		}
 
 		ob_start();
 		require CKWC_PLUGIN_PATH . '/views/backend/settings/subscription.php';

@@ -7,6 +7,131 @@
  */
 
 /**
+ * Runs the activation and update routines when the plugin is activated.
+ *
+ * @since   2.0.5
+ *
+ * @param   bool $network_wide   Is network wide activation.
+ */
+function ckwc_plugin_activate( $network_wide ) {
+
+	// Check if we are on a multisite install, activating network wide, or a single install.
+	if ( ! is_multisite() || ! $network_wide ) {
+		// Single Site activation.
+		add_action( 'shutdown', 'ckwc_schedule_actions' );
+	} else {
+		// Multisite network wide activation.
+		$sites = get_sites(
+			array(
+				'number' => 0,
+			)
+		);
+		foreach ( $sites as $site ) {
+			switch_to_blog( (int) $site->blog_id );
+			add_action( 'shutdown', 'ckwc_schedule_actions' );
+			restore_current_blog();
+		}
+	}
+
+}
+
+/**
+ * Runs the activation and update routines when the plugin is activated
+ * on a WordPress multisite setup.
+ *
+ * @since   2.0.5
+ *
+ * @param   WP_Site|int $site_or_blog_id    WP_Site or Blog ID.
+ */
+function ckwc_plugin_activate_new_site( $site_or_blog_id ) {
+
+	// Check if $site_or_blog_id is a WP_Site or a blog ID.
+	if ( is_a( $site_or_blog_id, 'WP_Site' ) ) {
+		$site_or_blog_id = $site_or_blog_id->blog_id;
+	}
+
+	// Run installation routine.
+	switch_to_blog( $site_or_blog_id );
+	add_action( 'shutdown', 'ckwc_schedule_actions' );
+	restore_current_blog();
+
+}
+
+/**
+ * Runs the deactivation routine when the plugin is deactivated.
+ *
+ * @since   2.0.5
+ *
+ * @param   bool $network_wide   Is network wide deactivation.
+ */
+function ckwc_plugin_deactivate( $network_wide ) {
+
+	// Check if we are on a multisite install, activating network wide, or a single install.
+	if ( ! is_multisite() || ! $network_wide ) {
+		// Single Site activation.
+		ckwc_unschedule_actions();
+	} else {
+		// Multisite network wide activation.
+		$sites = get_sites(
+			array(
+				'number' => 0,
+			)
+		);
+		foreach ( $sites as $site ) {
+			switch_to_blog( (int) $site->blog_id );
+			ckwc_unschedule_actions();
+			restore_current_blog();
+		}
+	}
+
+}
+
+/**
+ * Schedules the WordPress Cron events.
+ *
+ * @since   2.0.5
+ */
+function ckwc_schedule_actions() {
+
+	// Bail if the action scheduler is unavailable.
+	if ( ! function_exists( 'as_schedule_recurring_action' ) ) {
+		return;
+	}
+
+	// Bail if the scheduled action already exists.
+	if ( as_next_scheduled_action( 'ckwc_abandoned_cart' ) ) {
+		return;
+	}
+
+	// Schedule action.
+	as_schedule_recurring_action(
+		time(),
+		15 * MINUTE_IN_SECONDS,
+		'ckwc_abandoned_cart',
+		array(),
+		'ckwc'
+	);
+
+}
+
+/**
+ * Unschedules the WordPress Cron events.
+ *
+ * @since   2.0.5
+ */
+function ckwc_unschedule_actions() {
+
+	// Bail if the action scheduler is unavailable.
+	if ( ! function_exists( 'as_unschedule_all_actions' ) ) {
+		return;
+	}
+
+	// Unschedule action.
+	as_unschedule_all_actions( 'ckwc_abandoned_cart' );
+
+}
+
+/**
  * Helper method to return the Plugin Settings Link
  *
  * @since   1.4.2
@@ -52,3 +177,75 @@ function ckwc_select2_enqueue_styles() {
 	wp_enqueue_style( 'ckwc-admin-select2', CKWC_PLUGIN_URL . 'resources/backend/css/select2.css', array(), CKWC_PLUGIN_VERSION );
 
 }
+
+/**
+ * Saves the new access token, refresh token and its expiry, and schedules
+ * a WordPress Cron event to refresh the token on expiry.
+ *
+ * @since   2.0.3
+ *
+ * @param   array  $result      New Access Token, Refresh Token and Expiry.
+ * @param   string $client_id   OAuth Client ID used for the Access and Refresh Tokens.
+ */
+function ckwc_maybe_update_credentials( $result, $client_id ) {
+
+	// Don't save these credentials if they're not for this Client ID.
+	// They're for another Kit Plugin that uses OAuth.
+	if ( $client_id !== CKWC_OAUTH_CLIENT_ID ) {
+		return;
+	}
+
+	// Bail if the integration is unavailable.
+	if ( ! function_exists( 'WP_CKWC_Integration' ) ) {
+		return;
+	}
+
+	WP_CKWC_Integration()->update_credentials( $result );
+
+}
+
+/**
+ * Deletes the stored access token, refresh token and its expiry from the Plugin settings,
+ * and clears any existing scheduled WordPress Cron event to refresh the token on expiry,
+ * when either:
+ * - The access token is invalid
+ * - The access token expired, and refreshing failed
+ *
+ * @since   2.0.3
+ *
+ * @param   WP_Error $result      Error result.
+ * @param   string   $client_id   OAuth Client ID used for the Access and Refresh Tokens.
+ */
+function ckwc_maybe_delete_credentials( $result, $client_id ) {
+
+	// Don't save these credentials if they're not for this Client ID.
+	// They're for another Kit Plugin that uses OAuth.
+	if ( $client_id !== CKWC_OAUTH_CLIENT_ID ) {
+		return;
+	}
+
+	// Bail if the integration is unavailable.
+	if ( ! function_exists( 'WP_CKWC_Integration' ) ) {
+		return;
+	}
+
+	// If the error isn't a 401, don't delete credentials.
+	// This could be e.g. a temporary network error, rate limit or similar.
+	if ( $result->get_error_data( 'convertkit_api_error' ) !== 401 ) {
+		return;
+	}
+
+	// Persist an error notice in the WordPress Administration until the user fixes the problem.
+	WP_CKWC()->get_class( 'admin_notices' )->add( 'authorization_failed' );
+
+	WP_CKWC_Integration()->delete_credentials();
+
+}
+
+// Update Access Token when refreshed by the API class.
+add_action( 'convertkit_api_get_access_token', 'ckwc_maybe_update_credentials', 10, 2 );
+add_action( 'convertkit_api_refresh_token', 'ckwc_maybe_update_credentials', 10, 2 );
+
+// Delete credentials if the API class uses a invalid access token.
+// This prevents the Plugin making repetitive API requests that will 401.
+add_action( 'convertkit_api_access_token_invalid', 'ckwc_maybe_delete_credentials', 10, 2 );
