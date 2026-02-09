@@ -9,7 +9,7 @@
  * Plugin Name: Kit (formerly ConvertKit) for WooCommerce
  * Plugin URI:  https://www.kit.com
  * Description: Integrates WooCommerce with Kit, allowing customers to be automatically sent to your Kit account.
- * Version:     2.0.5
+ * Version:     2.0.6
  * Author:      Kit
  * Author URI:  https://www.kit.com
  * License:     GPLv3 or later
@@ -30,7 +30,7 @@ define( 'CKWC_PLUGIN_NAME', 'ConvertKitWooCommerce' ); // Used for user-agent in
 define( 'CKWC_PLUGIN_FILE', plugin_basename( __FILE__ ) );
 define( 'CKWC_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'CKWC_PLUGIN_PATH', __DIR__ );
-define( 'CKWC_PLUGIN_VERSION', '2.0.5' );
+define( 'CKWC_PLUGIN_VERSION', '2.0.6' );
 define( 'CKWC_OAUTH_CLIENT_ID', 'L0kyADsB3WP5zO5MvUpXQU64gIntQg9BBAIme17r_7A' );
 define( 'CKWC_OAUTH_CLIENT_REDIRECT_URI', 'https://app.kit.com/wordpress/redirect' );
 
@@ -58,6 +58,8 @@ require_once CKWC_PLUGIN_PATH . '/includes/class-ckwc-api.php';
 require_once CKWC_PLUGIN_PATH . '/includes/class-ckwc-checkout.php';
 require_once CKWC_PLUGIN_PATH . '/includes/class-ckwc-cli-sync-past-orders.php';
 require_once CKWC_PLUGIN_PATH . '/includes/class-ckwc-order.php';
+require_once CKWC_PLUGIN_PATH . '/includes/class-ckwc-rest-api.php';
+require_once CKWC_PLUGIN_PATH . '/includes/class-ckwc-refresh-resources.php';
 require_once CKWC_PLUGIN_PATH . '/includes/class-ckwc-resource.php';
 require_once CKWC_PLUGIN_PATH . '/includes/class-ckwc-resource-custom-fields.php';
 require_once CKWC_PLUGIN_PATH . '/includes/class-ckwc-resource-forms.php';
@@ -68,13 +70,11 @@ require_once CKWC_PLUGIN_PATH . '/includes/class-ckwc-wc-subscriptions.php';
 
 // Load files that are only used in the WordPress Administration interface.
 require_once CKWC_PLUGIN_PATH . '/admin/class-ckwc-admin-post-type.php';
-require_once CKWC_PLUGIN_PATH . '/admin/class-ckwc-admin-ajax.php';
 require_once CKWC_PLUGIN_PATH . '/admin/class-ckwc-admin-bulk-edit.php';
 require_once CKWC_PLUGIN_PATH . '/admin/class-ckwc-admin-coupon.php';
 require_once CKWC_PLUGIN_PATH . '/admin/class-ckwc-admin-plugin.php';
 require_once CKWC_PLUGIN_PATH . '/admin/class-ckwc-admin-product.php';
 require_once CKWC_PLUGIN_PATH . '/admin/class-ckwc-admin-quick-edit.php';
-require_once CKWC_PLUGIN_PATH . '/admin/class-ckwc-admin-refresh-resources.php';
 
 // Register Plugin activation and deactivation functions.
 register_activation_hook( __FILE__, 'ckwc_plugin_activate' );
