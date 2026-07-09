@@ -5,7 +5,7 @@ Tags: email, marketing, embed form, convertkit, capture
 Requires at least: 5.0
 Tested up to: 7.0
 Requires PHP: 7.1
-Stable tag: 2.1.5
+Stable tag: 2.1.6
 License: GPLv3 or later
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
@@ -39,12 +39,20 @@ Full plugin documentation is located [here](https://help.kit.com/en/articles/250
 
 No. You must first have an account on kit.com, but you do not have to use a paid plan!
 
+= Where do I report security bugs found in this plugin? =
+Please report security bugs found in the source code of the plugin through the [Patchstack Vulnerability Disclosure Program](https://patchstack.com/database/vdp/b599634b-6960-4d4b-bb14-bd00c08392b0). The Patchstack team will assist you with verification, CVE assignment, and notify the developers of this plugin.
+
 == Screenshots ==
 
 1. Settings page
 2. Checkout page with added checkbox
 
 == Changelog ==
+
+### 2.1.6 2026-07-09
+* Fix: Checkout: Correctly store opt in value against WooCommerce Order when using newer block checkout
+* Fix: Uninstall: Improve Access and Refresh Token revokation
+* Updated: WordPress Libraries to 2.1.7
 
 ### 2.1.5 2026-05-20
 * Fix: Settings: Button height in WordPress 7.0
